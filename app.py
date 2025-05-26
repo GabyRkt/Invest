@@ -22,7 +22,7 @@ def index():
 
     form_defaults = {
         'initial_amount': '',
-        'recurring_contrib': '',
+        'recurring_contribution': '',
         'frequency': 'mensuel',
         'start_month': '',
         'start_year': '',
@@ -85,11 +85,11 @@ def index():
 
             portfolio = Portfolio(
                 initial_amount=initial_amount,
-                recurring_contrib=recurring_contrib,
-                frequency=frequency,
+                recurring_contribution=recurring_contrib,
+                contribution_frequency=frequency,
                 start_date=start_date,
                 end_date=end_date,
-                fee=fee,
+                service_fee=fee,
                 assets=assets
             )
 

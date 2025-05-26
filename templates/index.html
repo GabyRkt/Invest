@@ -16,10 +16,10 @@
 
         <label>Fréquence:</label><br>
         <select name="frequency">
-            <option value="monthly" {% if form_data.frequency == 'monthly' %}selected{% endif %}>Mensuel</option>
-            <option value="quaterly" {% if form_data.frequency == 'quaterly' %}selected{% endif %}>Trimestriel</option>
-            <option value="semiannual" {% if form_data.frequency == 'semiannual' %}selected{% endif %}>Semi-annuel</option>
-            <option value="annual" {% if form_data.frequency == 'annual' %}selected{% endif %}>Annuel</option>
+            <option value="Mensuel" {% if form_data.frequency == 'Mensuel' %}selected{% endif %}>Mensuel</option>
+            <option value="Trimestriel" {% if form_data.frequency == 'Trimestriel' %}selected{% endif %}>Trimestriel</option>
+            <option value="Semestriel" {% if form_data.frequency == 'Semestriel' %}selected{% endif %}>Semestriel</option>
+            <option value="Annuel" {% if form_data.frequency == 'Annule' %}selected{% endif %}>Annuel</option>
         </select><br><br>
 
         <label>Date de début:</label><br>
@@ -67,7 +67,7 @@
     {% if portfolio %}
         <h2>Résultat</h2>
         <ul>
-            {% for key, value in portfolio.summary().items() %}
+            {% for key, value in portfolio.print_summary().items() %}
                 <li><strong>{{ key }}</strong> : {{ value }}</li>
             {% endfor %}
         </ul>
