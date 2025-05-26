@@ -1,29 +1,111 @@
 from flask import Flask, render_template, request, redirect
-from model import db, User
+from models import db, User
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db.init_app(app)
+@app.route('/search_etfs')
+def search_etfs_route():
+    q = request.args.get('q', '')
+    results = search_etfs(q)
+    # Pour simplifier, on renvoie une liste de dict {symbol, name}
+    return jsonify(results)
 
-@app.before_request
-def create_tables():
-    db.create_all()
-
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    users = User.query.all()
-    return render_template('index.html', users=users)
 
-@app.route('/add', methods=['POST'])
-def add_user():
-    name = request.form['name']
-    email = request.form['email']
-    user = User(name=name, email=email)
-    db.session.add(user)
-    db.session.commit()
-    return redirect('/')
+    current_month = datetime.today().month #récupérer le mois actuelle
+    previous_month = 12 if current_month == 1 else current_month - 1 #récupérer le mois précedent celui actuelle
+    current_year = datetime.today().year #récupérer l'année actuelle
+
+    form_defaults = {
+        'initial_amount': '',
+        'recurring_contrib': '',
+        'frequency': 'mensuel',
+        'start_month': '',
+        'start_year': '',
+        'end_month': '',
+        'end_year': '',
+        'fee': '',
+        'tickers': '[]',
+        'allocations': '{}'
+    }
+
+    context = {
+        'form_data': form_defaults.copy(),
+        'portfolio': None,
+        'error': None
+    }
+
+    if request.method == 'POST':
+        try:
+            form = request.form
+
+            initial_amount = float(form['initial_amount'])
+            if initial_amount < 0:
+                raise ValueError("Entrez un montant.")
+
+            recurring_contrib = float(form['recurring_contrib'])
+            if recurring_contrib <= 0:
+                raise ValueError("Les montants doivent être positifs.")
+            frequency = form['frequency']
+ 
+            start_month = int(form['start_month'])
+            start_year = int(form['start_year'])
+            end_month = int(form['end_month'])
+            end_year = int(form['end_year'])
+
+            start_date = datetime(start_year, start_month, 1)
+            end_date = datetime(end_year, end_month, 1)
+
+            today = datetime.today().replace(day=1)
+            if end_date >= today:
+                raise ValueError("La date de fin doit être avant le mois actuel.")
+            if end_date <= start_date:
+                raise ValueError("La date de fin doit être après la date de début.")
+            
+            fee = float(form['fee']) if form['fee'] else 0.0
+            if not 0 <= fee <= 100:
+                raise ValueError("Les frais doivent être entre 0 et 100 %.")
+
+            # Lecture des ETF et des allocations depuis les inputs cachés (format JSON)
+            tickers_raw = form.get('tickers', '[]')
+            allocations_raw = form.get('allocations', '{}')
+            tickers = json.loads(tickers_raw)
+            allocations = json.loads(allocations_raw)
+
+            assets = [Asset(ticker=t, weight=float(allocations.get(t, 0))) for t in tickers]
+
+            if assets:
+                total_allocation = sum(asset.weight for asset in assets)
+                if round(total_allocation, 2) != 100.0:
+                    raise ValueError("La somme des allocations des ETF doit faire 100 %.")
+
+            portfolio = Portfolio(
+                initial_amount=initial_amount,
+                recurring_contrib=recurring_contrib,
+                frequency=frequency,
+                start_date=start_date,
+                end_date=end_date,
+                fee=fee,
+                assets=assets
+            )
+
+
+
+            context['portfolio'] = portfolio
+
+            # Met à jour form_data avec les valeurs soumises pour garder affiché dans le formulaire
+            context['form_data'] = form_defaults.copy()
+            context['form_data'].update(form)
+
+        except Exception as e:
+            context['error'] = str(e)
+            # En cas d'erreur on garde quand même les valeurs saisies
+            context['form_data'] = form_defaults.copy()
+            context['form_data'].update(request.form)
+
+
+    return render_template('index.html', **context, current_year=current_year,previous_month=previous_month)
 
 if __name__ == '__main__':
     app.run(debug=True)
