@@ -60,112 +60,58 @@ class InvestmentSimulator:
 
         # Initial allocation for each ETF in assets based on percentage
         initial_allocations = self.portfolio.initial_amount * self.weights
-
         first_prices = self.data.loc[self.dates[0]]
 
-        # For the initial investment
+        # Initial investment
         for i, etf in enumerate(self.portfolio.assets):
             price = first_prices[etf.ticker]
 
-            # Get the number of whole units and calculate it's price
+            # Get the number of whole units that can be bought and calculate it's price
             units = np.floor(initial_allocations[i] / price)
             amount_used = units * price
-
-            leftover = initial_allocations[i] - amount_used
             etf.units += units
 
             # Add the leftover to cash_reserve to use it for the next month
-            self.portfolio.cash_reserve += leftover
+            self.portfolio.cash_reserve += initial_allocations[i] - amount_used
         
         portfolio_values = []
+        monthly_fee_rate = self.portfolio.service_fee / 100 / 12
 
 
-        # Iterate for each month
+        # Simulation loop (based on frenquency) 
         for i, date in enumerate(self.dates):
+            current_prices = self.data.loc[date]
             
-            # ETF price for this month
-            prices = self.data.loc[date]
-            
-            # Based on frequency and skip the first month
+            # Recurring contributions
             if i % self.months_between_contributions == 0 and i > 0:
                 self.portfolio.cash_reserve += self.portfolio.recurring_contribution
                 
+                # Buy ETF units using the new amount of cash
                 for etf in self.portfolio.assets:
-                    part = etf.weight * self.portfolio.cash_reserve
-                    price = prices[etf.ticker]
-                    units_to_buy = np.floor(part / price)
+                    allocation_amount = etf.weight * self.portfolio.cash_reserve
+                    price = current_prices[etf.ticker]
+                    units_to_buy = np.floor(allocation_amount / price)
                     amount_used = units_to_buy * price
+                    
                     etf.units += units_to_buy
                     self.portfolio.cash_reserve -= amount_used
 
 
             # Total portfolio value
-            portfolio_value = sum(etf.units * prices[etf.ticker] for etf in self.portfolio.assets)
+            portfolio_value = sum(etf.units * current_prices[etf.ticker] for etf in self.portfolio.assets)
             portfolio_value += self.portfolio.cash_reserve
 
             # Apply service fee only after the first month
             if i > 0:
-                # Service fee annualy to monthly
-                portfolio_value *= (1 - self.portfolio.service_fee / 100 / 12)
+                portfolio_value *= (1 - monthly_fee_rate)
             
             portfolio_values.append(portfolio_value)
 
+        # Create a dataframe with the portfolio values
         result_df = pd.DataFrame({
             "Date": self.dates,
             "Portfolio Value": portfolio_values
         }).set_index("Date")
 
         return result_df
-
-
-def compute_metrics(portfolio_values, dates, initial_amount, recurring_contribution, contribution_freq):
-
-    # 🟢 Get the final value of the portfolio (last simulated month)
-    final_value = portfolio_values[-1]
-
-    # 🟢 Frequency map: convert frequency string (in French) into # of months between contributions
-    freq_map = {
-        "Mensuel": 1,
-        "Trimestriel": 3,
-        "Semestriel": 6,
-        "Annuel": 12
-    }
-    months_between_contribs = freq_map[contribution_freq]  # e.g. 'Mensuel' → 1
-
-    # 🧮 Count how many contributions were made (excluding the initial investment)
-    num_contributions = sum(1 for i in range(1, len(dates)) if i % months_between_contribs == 0)
-
-    # 🟢 Total invested = initial amount + all recurring contributions
-    invested = initial_amount + recurring_contribution * num_contributions
-
-    # 🧮 Calculate the investment duration in years
-    years = (dates[-1] - dates[0]).days / 365.25  # approximate year fraction
-
-    # 📈 CAGR: Compound Annual Growth Rate
-    if invested > 0:
-        cagr = (final_value / invested) ** (1 / years) - 1
-    else:
-        cagr = 0
-
-    # 📊 Compute monthly returns from portfolio values
-    monthly_returns = pd.Series(portfolio_values).pct_change().dropna()
-
-    # 📉 Annualized volatility (standard deviation) from monthly returns
-    std_dev = monthly_returns.std() * np.sqrt(12)
-
-    # ⚖️ Sharpe Ratio: risk-adjusted return using risk-free rate (2% by default)
-    risk_free_rate = 0.02
-    if std_dev > 0:
-        sharpe_ratio = (cagr - risk_free_rate) / std_dev
-    else:
-        sharpe_ratio = 0  # Avoid division by zero
-
-    # 🧾 Return all computed metrics in a dictionary
-    return {
-        "invested": invested,              # Total invested capital
-        "final_value": final_value,        # Final portfolio value
-        "cagr": cagr,                      # Annual growth rate
-        "std_dev": std_dev,                # Volatility
-        "sharpe_ratio": sharpe_ratio       # Risk-adjusted performance
-    }
 

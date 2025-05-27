@@ -1,6 +1,7 @@
 from portfolio import Portfolio, Asset
 from utils import get_etf_info
-from simulation import InvestmentSimulator, compute_metrics
+from simulation import InvestmentSimulator 
+from metrics import compute_metrics
 import plotly.express as px
 import datetime as datetime
 
