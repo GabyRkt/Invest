@@ -5,64 +5,168 @@
     <title>Portefeuille d'investissement</title>
 </head>
 <body>
-    <h1>Simulateur de portefeuille d'investissement</h1>
 
-    <form method="POST">
-        <label>Montant initial (€):</label><br>
-        <input type="number" name="initial_amount" step="0.01" min="0" value="{{ form_data.initial_amount or '' }}"><br><br>
+    <style>
+      body {
+          font-family: 'Segoe UI', sans-serif;
+          background: #f9f9f9;
+          padding: 2rem;
+          color: #333;
+      }
 
-        <label>Contribution récurrente (€):</label><br>
-        <input type="number" name="recurring_contrib" step="0.01" min="0" value="{{ form_data.recurring_contrib or '' }}"><br><br>
+      h1 {
+          text-align: center;
+          margin-bottom: 2rem;
+      }
 
-        <label>Fréquence:</label><br>
-        <select name="frequency">
-            <option value="Mensuel" {% if form_data.frequency == 'Mensuel' %}selected{% endif %}>Mensuel</option>
-            <option value="Trimestriel" {% if form_data.frequency == 'Trimestriel' %}selected{% endif %}>Trimestriel</option>
-            <option value="Semestriel" {% if form_data.frequency == 'Semestriel' %}selected{% endif %}>Semestriel</option>
-            <option value="Annuel" {% if form_data.frequency == 'Annule' %}selected{% endif %}>Annuel</option>
-        </select><br><br>
+      form {
+          max-width: 600px;
+          margin: auto;
+          padding: 2rem;
+          background: #fff;
+          border-radius: 10px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      }
 
-        <label>Date de début:</label><br>
-        <select name="start_month">
-            {% for i, name in [
-                (1, 'Janvier'), (2, 'Février'), (3, 'Mars'), (4, 'Avril'),
-                (5, 'Mai'), (6, 'Juin'), (7, 'Juillet'), (8, 'Août'),
-                (9, 'Septembre'), (10, 'Octobre'), (11, 'Novembre'), (12, 'Décembre')
-            ] %}
-                <option value="{{ i }}" {% if form_data.start_month|int == i %}selected{% endif %}>{{ name }}</option>    
-            {% endfor %}
-        </select>
-        <select name="start_year">
-            {% for y in range(2000, current_year + 1) %}
-                <option value="{{ y }}" {% if form_data.start_year and form_data.start_year|int == y %}selected{% elif not form_data.start_year and y == current_year %}selected{% endif %}>{{ y }}</option>
-            {% endfor %}
-        </select><br><br>
+      label {
+          display: block;
+          margin-top: 1rem;
+          font-weight: bold;
+      }
 
-        <label>Date de fin:</label><br>
-        <select name="end_month">
-            {% for i, name in [
-                (1, 'Janvier'), (2, 'Février'), (3, 'Mars'), (4, 'Avril'),
-                (5, 'Mai'), (6, 'Juin'), (7, 'Juillet'), (8, 'Août'),
-                (9, 'Septembre'), (10, 'Octobre'), (11, 'Novembre'), (12, 'Décembre')
-            ] %}
-                <option value="{{ i }}" {% if form_data.end_month|int == i %}selected{% endif %}>{{ name }}</option>
-            {% endfor %}
-        </select>
-        <select name="end_year">
-            {% for y in range(2000, current_year + 1) %}
-                <option value="{{ y }}" {% if (form_data.end_year and form_data.end_year|int == y) or (not form_data.end_year and y == current_year) %}selected{% endif %}>{{ y }}</option>
-            {% endfor %}
-        </select><br><br>
+      input, select {
+          width: 100%;
+          padding: 0.6rem;
+          margin-top: 0.4rem;
+          border: 1px solid #ccc;
+          border-radius: 6px;
+      }
 
-        <label>Frais de service (%):</label><br>
-        <input type="number" name="fee" step="0.01" min="0" max="100" value="{{ form_data.fee or 0 }}"><br><br>
-        
-        <input type="submit" value="Calculer">
-    </form>
+      input[type="submit"] {
+          background-color: #007BFF;
+          color: white;
+          font-weight: bold;
+          margin-top: 2rem;
+          cursor: pointer;
+          border: none;
+          transition: background 0.3s ease;
+      }
 
-    {% if error %}
-        <p style="color:red">{{ error }}</p>
-    {% endif %}
+      input[type="submit"]:hover {
+          background-color: #0056b3;
+      }
+
+      .form-group {
+          margin-bottom: 1rem;
+      }
+
+      .date-group {
+          display: flex;
+          gap: 1rem;
+      }
+
+      .date-group select {
+          flex: 1;
+      }
+
+      .error-message {
+          color: red;
+          text-align: center;
+          font-weight: bold;
+      }
+
+  </style>
+
+  <h1>Simulateur de portefeuille d'investissement</h1>
+
+  <form method="POST">
+
+      <label>Montant initial (€)</label>
+      <input type="number" name="initial_amount" step="0.01" min="0" value="{{ form_data.initial_amount or '' }}">
+
+      <label>Contribution récurrente (€)</label>
+      <input type="number" name="recurring_contrib" step="0.01" min="0" value="{{ form_data.recurring_contrib or '' }}">
+
+      <label>Fréquence</label>
+      <select name="frequency">
+          {% for f in ['Mensuel', 'Trimestriel', 'Semestriel', 'Annuel'] %}
+          <option value="{{ f }}" {% if form_data.frequency == f %}selected{% endif %}>{{ f }}</option>
+          {% endfor %}
+      </select>
+
+
+      <label>Date de début</label>
+      <div class="date-group">
+          <select name="start_month">
+              {% for i, name in [(1, 'Janvier'), (2, 'Février'), (3, 'Mars'), (4, 'Avril'), (5, 'Mai'), (6, 'Juin'), (7, 'Juillet'), (8, 'Août'), (9, 'Septembre'), (10, 'Octobre'), (11, 'Novembre'), (12, 'Décembre')] %}
+                <option value="{{ i }}" {% if form_data.start_month and form_data.start_month|int == i %}
+                    selected
+                {% elif not form_data.start_month and i == previous_month %}
+                    selected
+                {% endif %}>{{ name }}</option>
+              {% endfor %}
+          </select>
+          <select name="start_year">
+              {% for y in range(2000, current_year + 1) %}
+                <option value="{{ y }}" {% if form_data.start_year and form_data.start_year|int == y %}
+                  selected
+                {% elif not form_data.start_year and y == current_year %}
+                  selected
+                {% endif %}>{{ y }}</option>
+              {% endfor %}
+          </select>
+      </div>
+
+      <label>Date de fin</label>
+      <div class="date-group">
+          <select name="end_month">
+              {% for i, name in [(1, 'Janvier'), (2, 'Février'), (3, 'Mars'), (4, 'Avril'), (5, 'Mai'), (6, 'Juin'), (7, 'Juillet'), (8, 'Août'), (9, 'Septembre'), (10, 'Octobre'), (11, 'Novembre'), (12, 'Décembre')] %}
+              <option value="{{ i }}" {% if form_data.end_month and form_data.end_month|int == i %}
+                selected
+            {% elif not form_data.end_month and i == previous_month %}
+                selected
+            {% endif %}>{{ name }}</option>
+              {% endfor %}
+          </select>
+          <select name="end_year">
+              {% for y in range(2000, current_year + 1) %}
+                <option value="{{ y }}"{% if form_data.end_year and form_data.end_year|int == y %}
+                selected
+            {% elif not form_data.end_year and y == current_year %}
+                selected
+            {% endif %}>{{ y }}</option>
+              {% endfor %}
+          </select>
+      </div>
+
+      <label>Frais de service (%)</label>
+      <input type="number" name="fee" step="0.01" min="0" max="100" value="{{ form_data.fee or 0 }}">
+      
+      <!-- ETF Search & Allocation Section -->
+      <label style="margin-top: 2rem;">Recherche ETF</label>
+      <input type="text" id="etf_search" autocomplete="on" placeholder="Tapez au moins 3 lettres">
+
+      <ul id="search_results" style="border: 1px solid #ccc; max-height: 150px; overflow-y: auto; padding-left: 1rem;"></ul>
+
+      <h4>ETF sélectionnés et allocations (%)</h4>
+      <div id="selected_etfs"></div>
+      <div id="allocation_total" style="margin-top: 1rem; font-weight: bold;">Total: 0%</div>
+
+      <!-- {% if error and 'allocation' in error|lower %}
+        <div class="error-message">{{ error }}</div>
+      {% endif %} -->
+
+      <!-- Hidden inputs to pass data -->
+      <input type="hidden" name="tickers" id="tickers_input">
+      <input type="hidden" name="allocations" id="allocations_input">
+
+      <input type="submit" value="Simuler le portefeuille">
+
+  </form>
+
+  {% if error %}
+      <p class="error-message">{{ error }}</p>
+  {% endif %}
 
     {% if portfolio %}
         <h2>Résultat</h2>
@@ -73,17 +177,6 @@
         </ul>
     {% endif %}
 
-    <form>
-        <h3>Recherche ETF</h3>
-        <input type="text" id="etf_search" autocomplete="on" placeholder="Tapez au moins 3 lettres">
-        <ul id="search_results" style="border:1px solid #ccc; max-height:150px; overflow-y:auto;"></ul>
-
-        <h4>ETF sélectionnés et allocations (%)</h4>
-        <div id="selected_etfs"></div>
-        <input type="hidden" name="tickers" id="tickers_input">
-        <input type="hidden" name="allocations" id="allocations_input">
-
-    </form>
 </body>
 
 
@@ -92,63 +185,100 @@ const searchInput = document.getElementById('etf_search');
 const resultsList = document.getElementById('search_results');
 const selectedDiv = document.getElementById('selected_etfs');
 const tickersInput = document.getElementById('tickers_input');
+const allocationsInput = document.getElementById('allocations_input');
+const allocationTotal = document.getElementById('allocation_total');
 
-let selectedTickers = new Set();
+let selectedTickers = new Map();
 
-function updateTickersInput() {
-  tickersInput.value = Array.from(selectedTickers).join(',');
+function updateHiddenInputs() {
+    tickersInput.value = JSON.stringify(Array.from(selectedTickers.keys()));
+    const allocations = {};
+    selectedTickers.forEach((value, key) => {
+        allocations[key] = value;
+    });
+    allocationsInput.value = JSON.stringify(allocations);
+    updateTotal();
+}
+
+function updateTotal() {
+    let total = 0;
+    selectedTickers.forEach(v => total += parseFloat(v) || 0);
+    allocationTotal.textContent = `Total: ${total.toFixed(1)}%`;
 }
 
 function addTicker(ticker) {
-  if (!selectedTickers.has(ticker)) {
-    selectedTickers.add(ticker);
-    renderSelectedTickers();
-    updateTickersInput();
-  }
+    if (!selectedTickers.has(ticker)) {
+        selectedTickers.set(ticker, 0);
+        renderSelectedTickers();
+        updateHiddenInputs();
+    }
 }
 
 function removeTicker(ticker) {
-  selectedTickers.delete(ticker);
-  renderSelectedTickers();
-  updateTickersInput();
+    selectedTickers.delete(ticker);
+    renderSelectedTickers();
+    updateHiddenInputs();
 }
 
 function renderSelectedTickers() {
-  selectedDiv.innerHTML = '';
-  selectedTickers.forEach(ticker => {
-    const div = document.createElement('div');
-    div.textContent = ticker + ' ';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = 'x';
-    btn.onclick = () => removeTicker(ticker);
-    div.appendChild(btn);
-    selectedDiv.appendChild(div);
-  });
+    selectedDiv.innerHTML = '';
+    selectedTickers.forEach((value, ticker) => {
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.alignItems = 'center';
+        div.style.marginTop = '0.5rem';
+
+        const label = document.createElement('label');
+        label.textContent = ticker + ' ';
+        label.style.flex = '1';
+
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = 0;
+        input.max = 100;
+        input.step = 0.1;
+        input.value = value;
+        input.style.width = '80px';
+        input.oninput = () => {
+            selectedTickers.set(ticker, parseFloat(input.value));
+            updateHiddenInputs();
+        };
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = 'x';
+        btn.onclick = () => removeTicker(ticker);
+        btn.style.marginLeft = '10px';
+
+        div.appendChild(label);
+        div.appendChild(input);
+        div.appendChild(btn);
+        selectedDiv.appendChild(div);
+    });
 }
 
 searchInput.addEventListener('input', async () => {
-  const query = searchInput.value.trim();
-  if (query.length < 1) {
-    resultsList.innerHTML = '';
-    return;
-  }
-  const res = await fetch(`/search_etfs?q=${query}`);
-  const data = await res.json();
-  resultsList.innerHTML = '';
-  data.forEach(item => {
-    if (!selectedTickers.has(item.symbol)) {
-      const li = document.createElement('li');
-      li.textContent = `${item.symbol} — ${item.name}`;
-      li.style.cursor = 'pointer';
-      li.onclick = () => {
-        addTicker(item.symbol);
+    const query = searchInput.value.trim();
+    if (query.length < 1) {
         resultsList.innerHTML = '';
-        searchInput.value = '';
-      };
-      resultsList.appendChild(li);
+        return;
     }
-  });
+    const res = await fetch(`/search_etfs?q=${query}`);
+    const data = await res.json();
+    resultsList.innerHTML = '';
+    data.forEach(item => {
+        if (!selectedTickers.has(item.symbol)) {
+            const li = document.createElement('li');
+            li.textContent = `${item.symbol} — ${item.name}`;
+            li.style.cursor = 'pointer';
+            li.onclick = () => {
+                addTicker(item.symbol);
+                resultsList.innerHTML = '';
+                searchInput.value = '';
+            };
+            resultsList.appendChild(li);
+        }
+    });
 });
 </script>
 
