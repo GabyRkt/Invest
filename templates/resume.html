@@ -1,0 +1,246 @@
+
+<main class="container">
+
+    {% if portfolio_data %}
+
+    <section id="resume" class="mb-5 pb-4 border-bottom" style="scroll-margin-top: 100px;">
+        <h2>Détails de votre portefeuille</h2>
+
+        <div class="row row-cols-1 row-cols-md-3 g-3 mb-4">
+
+        <!-- Montants & Fréquence -->
+        <div class="col">
+            <div class="card h-100 shadow-sm border-light">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Montants & contributions récurrentes</h6>
+                <p class="mb-1"><strong>Montant initial :</strong> {{ portfolio_data['Montant initial (€)'] }} €</p>
+                <p class="mb-1"><strong>Montant récurrent :</strong> {{ portfolio_data['Montant récurrent (€)'] }} €</p>
+                <p class="mb-0"><strong>Fréquence :</strong> {{ portfolio_data['Fréquence'] }}</p>
+            </div>
+            </div>
+        </div>
+
+        <!-- Période & Frais -->
+        <div class="col">
+            <div class="card h-100 shadow-sm border-light">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Période & Frais</h6>
+                <p class="mb-2"><strong>Période :</strong> {{ portfolio_data['Date de début'] }} → {{ portfolio_data['Date de fin'] }}</p>
+                <p class="mb-0"><strong>Frais de services :</strong> {{ portfolio_data['Frais de services (%)'] }}</p>
+            </div>
+            </div>
+        </div>
+
+        <!-- Valeurs clés -->
+        <div class="col">
+            <div class="card h-100 shadow-sm border-light">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Valeurs clés</h6>
+                <p class="mb-2"><strong>Montant investi :</strong> {{ metrics['Montant investi'].value }}</p>
+                <p class="mb-2"><strong>Valeur du portefeuille :</strong> {{ metrics['Valeur du portefeuille'].value}}</p>
+            </div>
+            </div>
+        </div>
+
+        </div>
+
+        <!-- Carte pour Allocation -->
+        <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-light">
+            <div class="card-body">
+                <h6 class="card-title text-muted mb-3">Allocation des ETFs</h6>
+                <div class="table-responsive">
+                <table class="table table-borderless table-sm align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th class="text-start" style="width: 15%;">Ticker</th>
+                        <th class="text-start">Nom du fonds</th>
+                        <th class="text-end" style="width: 15%;">Allocation</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for ticker, data in portfolio_data['Allocation des ETFs'].items() %}
+                    <tr>
+                        <td><strong>{{ ticker }}</strong></td>
+                        <td>{{ data.name }}</td>
+                        <td class="text-end">{{ data.allocation }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+            </div>
+        </div>
+        </div>
+
+
+
+        
+    </section>
+    {% endif %}
+
+
+
+    <!-- Simulation -->
+    <section id="evolution" class="mb-5 pb-4 border-bottom" style="scroll-margin-top: 100px;">
+        <h2>Évolution du portefeuille</h2>
+        
+        <form method="get" action="{{ url_for('index') }}" class="mb-4">
+            <div class="row g-3 align-items-center">
+
+                <div class="col-auto">
+                    <label for="scale" class="col-form-label">Échelle du graphique :</label>
+                </div>
+
+                <div class="col-auto">
+                    <select name="scale" id="scale" class="form-select" onchange="this.form.submit()">
+                        <option value="linear" {% if scale == 'linear' %}selected{% endif %}>Linéaire</option>
+                        <option value="log" {% if scale == 'log' %}selected{% endif %}>Logarithmique</option>
+                    </select>
+                </div>
+
+            </div>
+        </form>
+        
+        {% if graph_html %}
+        
+            <div class="mt-4">
+
+                <div>{{ graph_html | safe }}</div>
+            </div>
+        {% endif %}
+    </section>
+
+
+
+    <!-- Performance -->
+    <section id="performance" class="mb-5 pb-4 border-bottom" style="scroll-margin-top: 100px;">
+        <h3 class="mt-5">Statistiques du portefeuille</h3>
+
+        <div class="row g-4 mt-2">
+
+            <!-- Montant investi & Valeur du portfolio -->
+            <div class="col-12 col-lg-8">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6 class="card-title text-muted">Montant investi & Valeur finale</h6>
+                        <p class="mb-2">
+                            <strong>Montant investi :</strong> {{ metrics['Montant investi'].value }}
+                        </p>
+                        <p class="mb-2">
+                            <strong>Valeur du portefeuille :</strong> {{ metrics['Valeur du portefeuille'].value }}<br>
+                            <span class="text-muted small">{{ metrics['Valeur du portefeuille'].interpretation }}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liquidités -->
+            <div class="col-12 col-lg-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6 class="card-title text-muted">Liquidités</h6>
+                        <p class="fs-5 fw-bold">{{ metrics['Cash non investi'].value }}</p>
+                        <p class="text-muted small">{{ metrics['Cash non investi'].interpretation }}</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="row g-4 mt-2">
+            {% for key in ['CAGR', 'Volatilité annualisée', 'Ratio de Sharpe'] %}
+            <div class="col-12 col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h6 class="card-title text-muted">{{ key }}</h6>
+                        <p class="fs-5 fw-bold">{{ metrics[key].value }}</p>
+                        <p class="text-muted small">{{ metrics[key].interpretation }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </section>
+
+    <!-- Annual returns -->
+    <section id="annual-returns" class="mb-5 pb-4 border-bottom" style="scroll-margin-top: 100px;">
+        <h3 class="mt-5">Rendements annuels</h3>
+        <div class="bg-white p-3 rounded shadow-sm">
+            <div>{{ annual_returns_chart | safe }}</div>
+        </div>
+        <p class="mt-4 text-muted">{{ annual_returns_interpretation }}</p>
+    </section>
+
+
+    <!-- Comparaison avec ACWI -->
+    <section id="comparison" class="mb-5 pb-4 border-bottom" style="scroll-margin-top: 100px;">
+        <h3 class="mt-5">Comparaison avec l’indice ACWI</h3>
+
+        <h4 class="mt-5">Comparaison des métriques</h4>
+        <table class="table table-striped">
+        <thead>
+            <tr>
+            <th>Métrique</th>
+            <th>Votre portefeuille</th>
+            <th>ACWI</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for key, pair in comparison_metrics.items() %}
+            <tr>
+            <td>{{ key }}</td>
+            <td>{{ pair["Vous"] }}</td>
+            <td>{{ pair["ACWI"] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+
+        <div class="bg-white p-3 rounded shadow-sm">
+            <div>{{ comparison_graph | safe }}</div>
+        </div>
+    </section>
+
+        
+    <!-- Regression linéaire -->
+    <section id="regression" class="mb-5 pb-4" style="scroll-margin-top: 100px;">
+        <h3 class="mt-5">Régression linéaire sur les performances passées</h3>
+        
+        <form method="get" action="{{ url_for('index') }}" class="mb-3">
+        <div class="row g-3 align-items-center">
+                <div class="col-auto">
+                <label for="reg_scale" class="col-form-label">Échelle de la régression :</label>
+                </div>
+                <div class="col-auto">
+                <select name="reg_scale" id="reg_scale" class="form-select" onchange="this.form.submit()">
+                    <option value="linear" {% if reg_scale == 'linear' %}selected{% endif %}>Linéaire</option>
+                    <option value="log" {% if reg_scale == 'log' %}selected{% endif %}>Logarithmique</option>
+                </select>
+                </div>
+            </div>
+        </form>
+            
+            <div class="bg-white p-3 rounded shadow-sm">
+            <div>{{ regression_graph|safe }} </div>
+            </div>
+            <h4 class="mt-4">Analyse du modèle de régression</h4>
+        <table class="table table-bordered">
+        <tbody>
+            {% for label, value in regression_analysis.items() %}
+            <tr>
+            <th>{{ label }}</th>
+            <td>{{ value }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+    </section>
+
+
+    
+</main>
+

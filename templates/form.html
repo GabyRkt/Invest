@@ -1,0 +1,203 @@
+<div class="mb-3">
+  <label class="form-label">Montant initial (€)</label>
+  <input type="number" name="initial_amount" class="form-control" required step="0.01" min="0" value="{{ form_data.initial_amount or '' }}">
+</div>
+
+<div class="mb-3">
+  <label class="form-label">Contribution récurrente (€)</label>
+  <input type="number" name="recurring_contribution" class="form-control" required step="0.01" min="0" value="{{ form_data.recurring_contribution or '' }}">
+</div>
+
+<div class="mb-3">
+  <label class="form-label">Fréquence</label>
+  <select name="frequency" class="form-select">
+    {% for f in ['Mensuel', 'Trimestriel', 'Semestriel', 'Annuel'] %}
+      <option value="{{ f }}" {% if form_data.frequency == f %}selected{% endif %}>{{ f }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="mb-3">
+  <label class="form-label">Date de début</label>
+  <div class="row g-2">
+    <div class="col">
+      <select name="start_month" class="form-select">
+        {% for i, name in [(1, 'Janvier'), (2, 'Février'), (3, 'Mars'), (4, 'Avril'), (5, 'Mai'), (6, 'Juin'), (7, 'Juillet'), (8, 'Août'), (9, 'Septembre'), (10, 'Octobre'), (11, 'Novembre'), (12, 'Décembre')] %}
+          <option value="{{ i }}" {% if form_data.start_month and form_data.start_month|int == i %}selected{% elif not form_data.start_month and i == 1 %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    
+    <div class="col">
+      <select name="start_year" class="form-select">
+        {% for y in range(2000, current_year + 1) %}
+          <option value="{{ y }}" {% if form_data.start_year and form_data.start_year|int == y %}selected{% elif not form_data.start_year and y == current_year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="mb-3">
+  <label class="form-label">Date de fin</label>
+  <div class="row g-2">
+    <div class="col">
+      <select name="end_month" class="form-select">
+        {% for i, name in [(1, 'Janvier'), (2, 'Février'), (3, 'Mars'), (4, 'Avril'), (5, 'Mai'), (6, 'Juin'), (7, 'Juillet'), (8, 'Août'), (9, 'Septembre'), (10, 'Octobre'), (11, 'Novembre'), (12, 'Décembre')] %}
+          <option value="{{ i }}" {% if form_data.end_month and form_data.end_month|int == i %}selected{% elif not form_data.end_month and i == previous_month %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col">
+      <select name="end_year" class="form-select">
+        {% for y in range(2000, current_year + 1) %}
+          <option value="{{ y }}" {% if form_data.end_year and form_data.end_year|int == y %}selected{% elif not form_data.end_year and y == current_year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="mb-3">
+  <label class="form-label">Frais de service (%)</label>
+  <input type="number" name="fee" class="form-control" step="0.01" min="0" max="100" value="{{ form_data.fee or 0 }}">
+</div>
+
+<div class="mb-3">
+  <label class="form-label">Recherche ETF</label>
+  <input type="text" id="etf_search" class="form-control" autocomplete="on" placeholder="Tapez au moins 3 lettres">
+  <ul id="search_results" class="list-group mt-2" style="max-height: 150px; overflow-y: auto;"></ul>
+</div>
+
+<div class="mb-3" id="etf_section" style="display: none;">
+  <h5 class="form-label">ETF sélectionnés et allocations (%)</h5>
+  <div id="selected_etfs"></div>
+  <div id="allocation_total" class="mt-2 fw-bold">Total: 0%</div>
+</div>
+
+<input type="hidden" name="tickers" id="tickers_input">
+<input type="hidden" name="allocations" id="allocations_input">
+
+<div class="d-grid mt-4">
+  <input type="submit" class="btn btn-primary" value="Simuler le portefeuille">
+</div>
+
+<script>
+const searchInput = document.getElementById('etf_search');
+const resultsList = document.getElementById('search_results');
+const selectedDiv = document.getElementById('selected_etfs');
+const tickersInput = document.getElementById('tickers_input');
+const allocationsInput = document.getElementById('allocations_input');
+const allocationTotal = document.getElementById('allocation_total');
+const etfSection = document.getElementById('etf_section');
+
+let selectedTickers = new Map();
+
+function updateHiddenInputs() {
+  tickersInput.value = JSON.stringify(Array.from(selectedTickers.keys()));
+  const allocations = {};
+  selectedTickers.forEach((value, key) => allocations[key] = value);
+  allocationsInput.value = JSON.stringify(allocations);
+  updateTotal();
+  toggleETFSection();
+}
+
+function updateTotal() {
+  let total = 0;
+  selectedTickers.forEach(v => total += parseFloat(v) || 0);
+  allocationTotal.textContent = `Total: ${total.toFixed(1)}%`;
+}
+
+function toggleETFSection() {
+  etfSection.style.display = selectedTickers.size > 0 ? 'block' : 'none';
+}
+
+function addTicker(ticker) {
+  if (!selectedTickers.has(ticker)) {
+    selectedTickers.set(ticker, 0);
+    renderSelectedTickers();
+    updateHiddenInputs();
+  }
+}
+
+function removeTicker(ticker) {
+  selectedTickers.delete(ticker);
+  renderSelectedTickers();
+  updateHiddenInputs();
+}
+
+function renderSelectedTickers() {
+  selectedDiv.innerHTML = '';
+  selectedTickers.forEach((value, ticker) => {
+    const div = document.createElement('div');
+    div.className = "d-flex align-items-center mb-2";
+
+    const label = document.createElement('label');
+    label.textContent = ticker + ' ';
+    label.className = "me-2 flex-grow-1";
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = 0;
+    input.max = 100;
+    input.step = 0.1;
+    input.value = value;
+    input.className = "form-control w-auto";
+    input.oninput = () => {
+      selectedTickers.set(ticker, parseFloat(input.value));
+      updateHiddenInputs();
+    };
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'x';
+    btn.className = "btn btn-outline-danger btn-sm ms-2";
+    btn.onclick = () => removeTicker(ticker);
+
+    div.appendChild(label);
+    div.appendChild(input);
+    div.appendChild(btn);
+    selectedDiv.appendChild(div);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const tickers = JSON.parse(tickersInput.value || "[]");
+    const allocations = JSON.parse(allocationsInput.value || "{}");
+
+    tickers.forEach(ticker => {
+      selectedTickers.set(ticker, allocations[ticker] || 0);
+    });
+    renderSelectedTickers();
+    updateHiddenInputs();
+  } catch (e) {
+    console.warn("Erreur de rechargement des ETF:", e);
+  }
+});
+
+searchInput.addEventListener('input', async () => {
+  const query = searchInput.value.trim();
+  if (query.length < 1) {
+    resultsList.innerHTML = '';
+    return;
+  }
+  const res = await fetch(`/search_etfs?q=${query}`);
+  const data = await res.json();
+  resultsList.innerHTML = '';
+  data.forEach(item => {
+    if (!selectedTickers.has(item.symbol)) {
+      const li = document.createElement('li');
+      li.textContent = `${item.symbol} — ${item.name}`;
+      li.className = "list-group-item list-group-item-action";
+      li.style.cursor = 'pointer';
+      li.onclick = () => {
+        addTicker(item.symbol);
+        resultsList.innerHTML = '';
+        searchInput.value = '';
+      };
+      resultsList.appendChild(li);
+    }
+  });
+});
+</script>
