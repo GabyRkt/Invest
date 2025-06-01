@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container  mt-5">
 
-  <!-- Formulaire -->
+  <!-- Form -->
   <div id="form-section"
        {% if portfolio is defined and portfolio %}
          style="display: none;"
@@ -19,7 +19,7 @@
     </form>
   </div>
 
-  <!-- Analyses -->
+  <!-- Analysis -->
   {% if portfolio %}
     {% include 'resume.html' %}
   {% endif %}
