@@ -156,13 +156,12 @@ def perform_regression_analysis(df, scale='linear'):
     Perform regression analysis on portfolio performance
     """
     reg_result = regression(df.index.to_list(), df["Portfolio Value"].values, scale=scale)
-    regression_graph = plot_regression(df, reg_result, scale=scale)
+    regression_graph = plot_regression(df, scale=scale)
     
     regression_analysis = {
         "Facteur de corrélation (R²)": f"{reg_result['r2']:.4f}",
-        "Croissance annualisée estimée": f"{reg_result['growth_annualized'] * 100:.2f} %",
-        "Distance au modèle (en %)": f"{reg_result['diff_percent'] * 100:.2f} %",
-        "Écart-type des résidus": f"{reg_result['residual_std']:.4f}",
+        "Distance au modèle (en %)": f"{reg_result['diff_percent']:.2f} %",
+        "Écart-type des résidus": f"{reg_result['residual_std']:.4f} %",
         "Position du dernier point (×σ)": f"{reg_result['diff_std']:.2f} σ"
     }
     
@@ -332,3 +331,5 @@ def index():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
