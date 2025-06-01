@@ -1,10 +1,13 @@
 import pandas as pd
+from etf_search import get_etf_name
+import yfinance as yf
 
 class Asset:
     def __init__(self, ticker, weight, fee=0.0):
         self.ticker = ticker
         self.weight = weight / 100 # convert to proportion (ex. 70 to 0.70)
         self.units = 0
+
 
 
 class Portfolio:
@@ -36,6 +39,14 @@ class Portfolio:
 
 
     def print_summary(self):
+        allocation = {
+        asset.ticker: {
+            "name": get_etf_name(asset.ticker),
+            "allocation": f"{asset.weight * 100:.1f}%"
+        }
+        for asset in self.assets
+        }
+
         return {
             "Montant initial (€)": self.initial_amount,
             "Montant récurrent (€)": self.recurring_contribution,
@@ -43,7 +54,7 @@ class Portfolio:
             "Date de début": self.start_date.strftime("%m/%Y"),
             "Date de fin": self.end_date.strftime("%m/%Y"),
             "Frais de services (%)": self.service_fee,
-            "Montant final estimé (€)": round(self.final_amount, 2),
-            "Allocation des ETFs": {asset.ticker: f"{asset.weight}%" for asset in self.assets}
+            "Valeur du portefeuille (€)": round(self.final_amount, 2),
+            "Allocation des ETFs": allocation
         }
 
