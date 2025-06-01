@@ -274,7 +274,9 @@ def plot_portfolio(df, scale='linear', invested_amount=None):
 
 
 def get_invested_amount(dates, initial_amount, recurring_contribution, frequency):
-
+    """
+    Calculate the total amount invested over time based on frequency
+    """
     freq_map = {"Mensuel": 1, "Trimestriel": 3, "Semestriel": 6, "Annuel": 12}
     months_between = freq_map[frequency]
 
@@ -291,21 +293,20 @@ def get_invested_amount(dates, initial_amount, recurring_contribution, frequency
 
 def plot_annual_returns(df):
     """
-    Génère un graphique des rendements annuels en % à partir des valeurs mensuelles du portefeuille,
-    avec barres rouges pour les rendements négatifs et vertes pour les positifs.
+     Generate a chart of annual returns in % from monthly portfolio values
     """
-    # Calcul des rendements mensuels
+    # Calculate monthly returns
     monthly_returns = df["Portfolio Value"].pct_change()
 
-    # Calcul des rendements annuels composés
+    # Calculate compound annual returns
     annual_returns = ((1 + monthly_returns).resample("Y").prod() - 1) * 100
     years = annual_returns.index.year
     returns = annual_returns.values
 
-    # Couleurs conditionnelles
+    # Assign colors based on return sign
     colors = ["seagreen" if r >= 0 else "indianred" for r in returns]
 
-    # Graphique
+    # Bar chart
     fig = go.Figure()
     fig.add_trace(go.Bar(
         x=years,
@@ -328,15 +329,19 @@ def plot_annual_returns(df):
 
 def interpret_annual_returns(df):
     """
-    Génère une interprétation textuelle des rendements annuels du portefeuille.
+    Generate a textual interpretation of the portfolio's annual returns   
     """
+
+    # Calculate monthly and annual returns
     monthly_returns = df["Portfolio Value"].pct_change()
     annual_returns = ((1 + monthly_returns).resample("Y").prod() - 1) * 100
     annual_returns.index = annual_returns.index.year
 
+    # Check data availability
     if annual_returns.empty:
         return "Aucune donnée disponible pour interpréter les rendements annuels."
 
+    # Calculate key statistics
     mean_return = annual_returns.mean()
     best_year = annual_returns.idxmax()
     best_value = annual_returns.max()
@@ -345,7 +350,7 @@ def interpret_annual_returns(df):
     negative_years = annual_returns[annual_returns < 0].count()
     total_years = len(annual_returns)
 
-    # Construction du message
+    # Build interpretation message
     message = (
         f"Le portefeuille a enregistré "
         f"une performance moyenne de {mean_return:.2f} % par an. "
@@ -353,6 +358,7 @@ def interpret_annual_returns(df):
         f"tandis que la pire a été {worst_year} avec {worst_value:.2f} %. "
     )
 
+    # Analyze stability based on negative years
     if negative_years == 0:
         message += "Toutes les années ont été positives, ce qui témoigne d'une excellente stabilité."
     elif negative_years == total_years:
